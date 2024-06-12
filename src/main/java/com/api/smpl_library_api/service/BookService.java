@@ -1,6 +1,7 @@
 package com.api.smpl_library_api.service;
 
 import com.api.smpl_library_api.dto.BookDTO;
+import com.api.smpl_library_api.dto.UserDTO;
 import com.api.smpl_library_api.model.Author;
 import com.api.smpl_library_api.model. Book;
 import com.api.smpl_library_api.repository.AuthorRepository;
@@ -19,21 +20,23 @@ import java.util.Optional;
 public class BookService {
     
     private final BookRepository bookRepository;
-    
-    private final AuthorRepository authorRepository;
+
+    private final SecurityConnector securityConnector;
 
     @Transactional
-    public Book save(Book book, List<Author> authors) {
-        Book result = bookRepository.save(book);
-        for (Author author : authors) {
-            authorRepository.createConnectionAuthorToBook(author, book);
+    public Optional<Book> save(Book book, UserDTO userDTO) {
+        if (securityConnector.checkUser(userDTO)) {
+            return Optional.of(bookRepository.save(book));
         }
-        return result;
+        return Optional.empty();
     }
 
     @Transactional
-    public boolean update(Book book) {
-        return bookRepository.update(book) > 0L;
+    public boolean update(Book book, UserDTO userDTO) {
+        if (securityConnector.checkUser(userDTO)) {
+            return bookRepository.update(book) > 0L;
+        }
+        return false;
     }
 
     public Optional<Book> findById(Integer id) {
@@ -41,8 +44,11 @@ public class BookService {
     }
 
     @Transactional
-    public boolean deleteById(Integer id) {
-        return bookRepository.delete(id) > 0L;
+    public boolean deleteById(Integer id, UserDTO userDTO) {
+        if (securityConnector.checkUser(userDTO)) {
+            return bookRepository.delete(id) > 0L;
+        }
+        return false;
     }
 
     public List< Book> findAll() {

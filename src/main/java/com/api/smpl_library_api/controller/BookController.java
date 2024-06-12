@@ -1,6 +1,8 @@
 package com.api.smpl_library_api.controller;
 
 import com.api.smpl_library_api.dto.BookDTO;
+import com.api.smpl_library_api.dto.UserDTO;
+import com.api.smpl_library_api.dto.request.BookRequest;
 import com.api.smpl_library_api.model.Author;
 import com.api.smpl_library_api.model.Book;
 import com.api.smpl_library_api.service.BookService;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.Optional;
 
 @Validated
 @Slf4j
@@ -43,21 +46,24 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<Book> save(@RequestBody Book book, @RequestBody List<Author> authors) {
-        bookService.save(book, authors);
+    public ResponseEntity<Book> save(@RequestBody BookRequest bookRequest) {
+        Optional<Book> book = bookService.save(bookRequest.getBook(), bookRequest.getUserDTO());
+        if (book.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
         var uri = ServletUriComponentsBuilder
                 .fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(book.getId())
+                .buildAndExpand(bookRequest.getBook().getId())
                 .toUri();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .location(uri)
-                .body(book);
+                .body(bookRequest.getBook());
     }
 
     @PutMapping
-    public ResponseEntity<Void> update(@RequestBody Book book) {
-        if (bookService.update(book)){
+    public ResponseEntity<Void> update(@RequestBody BookRequest bookRequest) {
+        if (bookService.update(bookRequest.getBook(), bookRequest.getUserDTO())){
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();
@@ -65,13 +71,14 @@ public class BookController {
 
     @PatchMapping
     @ResponseStatus(HttpStatus.OK)
-    public void change(@RequestBody Book book) {
-        bookService.update(book);
+    public void change(@RequestBody BookRequest bookRequest) {
+        bookService.update(bookRequest.getBook(), bookRequest.getUserDTO());
     }
 
     @DeleteMapping("/{bookId}")
-    public ResponseEntity<Void> removeById(@PathVariable Integer bookId) {
-        if (bookService.deleteById(bookId)) {
+    public ResponseEntity<Void> removeById(@PathVariable Integer bookId,
+                                           @RequestBody UserDTO userDTO) {
+        if (bookService.deleteById(bookId, userDTO)) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
